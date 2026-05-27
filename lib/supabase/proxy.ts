@@ -6,11 +6,16 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Check if Supabase credentials are available
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse
+  }
+
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
@@ -35,18 +40,12 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  // Skip auth check if using dummy credentials to prevent loading delays
-  const isDummy = process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('dummy') || 
-                  !process.env.NEXT_PUBLIC_SUPABASE_URL;
-  
   let user = null;
-  if (!isDummy) {
-    try {
-      const { data } = await supabase.auth.getUser()
-      user = data.user;
-    } catch (e) {
-      console.error('Supabase auth error:', e);
-    }
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user;
+  } catch (e) {
+    console.error('Supabase auth error:', e);
   }
 
   if (
